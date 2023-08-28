@@ -1,13 +1,19 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(sp_driver)
+project(sp_ros_driver)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++14)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  sp_driver
+  message_generation
+  message_runtime
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -43,11 +49,11 @@ find_package(catkin REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  SpCommand.msg
+  SpState.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -64,10 +70,10 @@ find_package(catkin REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -99,10 +105,10 @@ find_package(catkin REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
- LIBRARIES sp_driver
- CATKIN_DEPENDS
- DEPENDS
+#  INCLUDE_DIRS include
+#  LIBRARIES sp_ros_driver
+#  CATKIN_DEPENDS roscpp std_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -117,23 +123,19 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(simple_serial
-  src/simple_serial/simple_serial.cpp
-)
-
-add_library(sp_driver
-  src/sp_driver.cpp
+add_library(${PROJECT_NAME}
+  src/${PROJECT_NAME}/sp_ros_driver.cpp
 )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(sp_driver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(simple_serial_test src/simple_serial/simple_serial.cpp test/test_sp_driver.cpp)
+add_executable(${PROJECT_NAME}_node src/sp_ros_driver_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -143,11 +145,11 @@ add_dependencies(sp_driver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(simple_serial_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(sp_driver
-  simple_serial
+target_link_libraries(${PROJECT_NAME}_node
+  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
@@ -173,18 +175,18 @@ target_link_libraries(sp_driver
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-install(TARGETS sp_driver
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-)
+# install(TARGETS ${PROJECT_NAME}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-  PATTERN ".svn" EXCLUDE
-)
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -198,11 +200,10 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(test_sp_driver test/test_simple_serial.cpp test/test_sp_driver.cpp)
-
-if(TARGET test_sp_driver)
-  target_link_libraries(test_sp_driver sp_driver simple_serial)
-endif()
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_sp_ros_driver.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
