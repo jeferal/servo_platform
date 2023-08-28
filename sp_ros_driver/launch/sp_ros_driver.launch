@@ -1,10 +1,12 @@
 <launch>
 
     <arg name="port_name" default="/dev/ttyUSB0"/>
+    <arg name="sleep_ms" default="50"/>
 
     <!-- Data collector-->
     <node name="sp_ros_driver_node" pkg="sp_ros_driver" type="sp_ros_driver_node" output="screen">
         <param name="port_name" type="string" value="$(arg port_name)"/>
+        <param name="sleep_ms" type="int" value="$(arg sleep_ms)"/>
     </node>
 
 </launch>

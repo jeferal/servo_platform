@@ -24,7 +24,7 @@ if __name__ == "__main__":
         msg = SpCommand()
         msg.roll = int(roll_value)
         msg.pitch = int(pitch_value)
-        
+
         print(f"Publishing roll: {msg.roll}, pitch: {msg.pitch}")
         # Publish message
         publisher.publish(msg)

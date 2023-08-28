@@ -14,7 +14,7 @@ namespace servo_platform
     {
     public:
         /// @brief 
-        SpRosDriver(const char* port_name, ros::NodeHandle& nh);
+        SpRosDriver(const char* port_name, ros::NodeHandle& nh, unsigned int ms_sleep = 50);
 
         /// @brief 
         /// @return 
@@ -44,5 +44,8 @@ namespace servo_platform
 
         std::atomic<int> _current_roll;
         std::atomic<int> _current_pitch;
+
+        // Sleep time between commands
+        unsigned int _ms_sleep;
     };
 }

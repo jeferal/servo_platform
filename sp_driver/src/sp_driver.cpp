@@ -19,11 +19,11 @@ auto SpDriver::init() -> int
     return 0;
 }
 
-auto SpDriver::step(int roll, int pitch, SpDataStruct &sp_data_struct) -> int
+auto SpDriver::step(int roll, int pitch, SpDataStruct &sp_data_struct, unsigned int ms_sleep) -> int
 {
     createMessage(roll, pitch);
     _serial_com->writeString(_message);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms_sleep));
     std::string result = _serial_com->readUntil('e');
     // Get roll and pitch from response
     processResponse(result, sp_data_struct);

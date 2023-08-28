@@ -16,8 +16,16 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // Get sleep ms time
+    int sleep_ms;
+    if (!nh.getParam("sleep_ms", sleep_ms))
+    {
+        ROS_ERROR("Failed to get sleep ms");
+        return -1;
+    }
+
     // Create driver
-    SpRosDriver sp_ros_driver(port_name.c_str(), nh);
+    SpRosDriver sp_ros_driver(port_name.c_str(), nh, sleep_ms);
 
     // Initialize driver
     if (!sp_ros_driver.init())
