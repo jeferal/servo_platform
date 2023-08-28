@@ -41,10 +41,6 @@ auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
 
     tcgetattr(_fd, &serialConfig);
 
-    cfmakeraw(&serialConfig);
-    serialConfig.c_cflag |= (CLOCAL | CREAD);
-    serialConfig.c_iflag &= ~(IXOFF | IXANY);
-
     // set vtime, vmin, baud rate...
     serialConfig.c_lflag &= ~ICANON; /* Set non-canonical mode */
     serialConfig.c_cc[VTIME] = 1; /* Set timeout of 10.0 seconds */
@@ -80,6 +76,11 @@ auto SimpleSerial::readUntil(char character) -> std::string
     while (buffer[0] != character && n > 0);
 
     std::cout << "result: " << result << " and n: " << n << std::endl;
+
+    if (n == 0)
+    {
+        throw std::runtime_error("Read operation has timed out");
+    }
 
     if (n < 0)
     {

@@ -16,8 +16,24 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // ROS parameter start roll
+    int start_roll;
+    if (!nh.getParam("start_roll", start_roll))
+    {
+        ROS_ERROR("Failed to get start roll");
+        return -1;
+    }
+
+    // ROS parameter start pitch
+    int start_pitch;
+    if (!nh.getParam("start_pitch", start_pitch))
+    {
+        ROS_ERROR("Failed to get start pitch");
+        return -1;
+    }
+
     // Create driver
-    SpRosDriver sp_ros_driver(port_name.c_str(), nh, sleep_ms);
+    SpRosDriver sp_ros_driver(port_name.c_str(), nh, start_roll, start_pitch);
 
     // Initialize driver
     if (!sp_ros_driver.init())

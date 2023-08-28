@@ -34,7 +34,6 @@ namespace servo_platform
             /// @param pitch 
             /// @param sp_data_struct 
             /// @return 
-            // TODO: Optimize communication to remove sleep
             auto step(int roll, int pitch, SpDataStruct &sp_data_struct) -> int;
 
             /// @brief 

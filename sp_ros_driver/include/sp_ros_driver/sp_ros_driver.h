@@ -14,7 +14,7 @@ namespace servo_platform
     {
     public:
         /// @brief 
-        SpRosDriver(const char* port_name, ros::NodeHandle& nh);
+        SpRosDriver(const char* port_name, ros::NodeHandle& nh, int start_roll = 90, int start_pitch = 90);
 
         /// @brief 
         /// @return 

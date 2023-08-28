@@ -13,7 +13,6 @@ TEST(testSimpleSerial, testWriteAndReceive)
 {
     // Initialize serial port
     std::unique_ptr<SimpleSerial> serial_port = std::make_unique<SimpleSerial>("/dev/ttyUSB0", 115200);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Write to roll 90 and pitch 90
     serial_port->writeString("a090090");
@@ -42,7 +41,6 @@ TEST(testSimpleSerial, testWriteAndReceiveStreaming)
 
     // Write to roll 90 and pitch 90
     serial_port->writeString("a090090");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // Get response
     std::string result = serial_port->readUntil('e');
     // Get roll angle from response

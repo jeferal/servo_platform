@@ -2,12 +2,12 @@
 
 using namespace servo_platform;
 
-SpRosDriver::SpRosDriver(const char* port_name, ros::NodeHandle& nh) :
+SpRosDriver::SpRosDriver(const char* port_name, ros::NodeHandle& nh, int start_roll, int start_pitch) :
 _nh(nh),
-SpDriver(port_name),
+SpDriver(port_name)
 {
-    _current_roll.store(90);
-    _current_pitch.store(90);
+    _current_roll = start_roll;
+    _current_pitch = start_pitch;
 }
 
 bool SpRosDriver::init()

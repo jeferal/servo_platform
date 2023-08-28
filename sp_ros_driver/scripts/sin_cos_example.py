@@ -14,11 +14,16 @@ if __name__ == "__main__":
     # Create publisher
     publisher = rospy.Publisher("/sp_ros_driver_node/sp_command", SpCommand, queue_size=10)
 
+    # Get start roll parameter
+    start_roll = rospy.get_param("~start_roll", 90)
+    # Get start pitch parameter
+    start_pitch = rospy.get_param("~start_pitch", 90)
+
     while not rospy.is_shutdown():
         # Generate sinusoidal trajectory 5 sec period, offset 90 deg, amplitude 90 + 30 deg
-        period_time = 1.5
-        roll_value = 90 + 30 * math.sin(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
-        pitch_value = 90 + 30 * math.cos(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
+        period_time = 5.0
+        roll_value = start_roll + 30 * math.sin(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
+        pitch_value = start_pitch + 30 * math.cos(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
 
         # Create message
         msg = SpCommand()
@@ -28,5 +33,3 @@ if __name__ == "__main__":
         print(f"Publishing roll: {msg.roll}, pitch: {msg.pitch}")
         # Publish message
         publisher.publish(msg)
-
-        sleep(0.05)

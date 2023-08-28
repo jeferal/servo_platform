@@ -1,5 +1,6 @@
 #include <thread>
 #include <chrono>
+#include <iostream>
 
 #include <sp_driver/sp_driver.h>
 
@@ -14,7 +15,6 @@ _port_name(port_name)
 auto SpDriver::init() -> int
 {
     _serial_com = std::make_unique<SimpleSerial>(_port_name, 115200);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     return 0;
 }
@@ -23,7 +23,14 @@ auto SpDriver::step(int roll, int pitch, SpDataStruct &sp_data_struct) -> int
 {
     createMessage(roll, pitch);
     _serial_com->writeString(_message);
+    // Measure time taken by reading
+    auto start = std::chrono::system_clock::now();
     std::string result = _serial_com->readUntil('e');
+    auto end = std::chrono::system_clock::now();
+
+    // Print the time
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout << "Read until time: " << elapsed_seconds.count() << "s\n";
     // Get roll and pitch from response
     processResponse(result, sp_data_struct);
 
