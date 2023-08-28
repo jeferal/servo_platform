@@ -15,10 +15,13 @@ public:
     // Constructor
     SimpleSerial(const char* port_name, unsigned int baud_rate);
 
+    // Destructor
+    ~SimpleSerial();
+
     /// @brief 
     /// @param message 
     /// @return 
-    auto writeString(const std::string& message) -> void;
+    auto writeString(const std::string& message) -> int;
 
     /// @brief 
     /// @param character 

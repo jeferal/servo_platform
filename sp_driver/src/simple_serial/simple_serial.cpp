@@ -11,6 +11,7 @@ SimpleSerial::SimpleSerial(const char* port_name, unsigned int baud_rate)
 
     // Open the serial port
     _fd = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
+    std::cout << "fd: " << _fd << std::endl;
 
     if (_fd == -1)
     {
@@ -26,6 +27,13 @@ SimpleSerial::SimpleSerial(const char* port_name, unsigned int baud_rate)
     std::cout << "Opened serial port " << port_name << " at " << baud_rate << " baud" << std::endl;
 }
 
+SimpleSerial::~SimpleSerial()
+{
+    // Close the serial port
+    std::cout << "Closing serial port" << std::endl;
+    close(_fd);
+}
+
 auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
 {
     // Get current serial port settings
@@ -33,14 +41,16 @@ auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
 
     tcgetattr(_fd, &serialConfig);
 
-    // Set the baud rate
-    cfsetispeed(&serialConfig, baud_rate);
-    cfsetospeed(&serialConfig, baud_rate);
+    cfmakeraw(&serialConfig);
+    serialConfig.c_cflag |= (CLOCAL | CREAD);
+    serialConfig.c_iflag &= ~(IXOFF | IXANY);
 
-    serialConfig.c_cflag &= ~PARENB;    // set no parity, stop bits, data bits
-	serialConfig.c_cflag &= ~CSTOPB;
-	serialConfig.c_cflag &= ~CSIZE;
-	serialConfig.c_cflag |= CS8;
+    // set vtime, vmin, baud rate...
+    serialConfig.c_cc[VMIN] = 0;  // you likely don't want to change this
+    serialConfig.c_cc[VTIME] = 0; // or this
+
+    cfsetispeed(&serialConfig, B115200);
+    cfsetospeed(&serialConfig, B115200);
 
     // Apply the new settings
     tcsetattr(_fd, TCSANOW, &serialConfig);
@@ -48,10 +58,10 @@ auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
     return 0;
 }
 
-auto SimpleSerial::writeString(const std::string &message) -> void
+auto SimpleSerial::writeString(const std::string &message) -> int
 {
     // Write the string to the serial port
-    write(_fd, message.c_str(), message.length());
+    return write(_fd, message.c_str(), message.length());
 }
 
 auto SimpleSerial::readUntil(char character) -> std::string
@@ -67,5 +77,6 @@ auto SimpleSerial::readUntil(char character) -> std::string
     }
     while (buffer[0] != character && n > 0);
 
+    std::cout << "result: " << result << std::endl;
     return result;
 }
