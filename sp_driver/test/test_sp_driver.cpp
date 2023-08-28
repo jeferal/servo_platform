@@ -1,62 +1,48 @@
-#include <iostream>
-#include <chrono>
 #include <thread>
+#include <chrono>
 #include <cmath>
-#include <memory>
-
 #include <gtest/gtest.h>
 
-#include <sp_driver/simple_serial/simple_serial.h>
+#include <sp_driver/sp_driver.h>
 
 
-TEST(testSimpleSerial, testWriteAndReceive)
+TEST(testSpDriver, testCreateMessage)
 {
-    // Initialize serial port
-    std::unique_ptr<SimpleSerial> serial_port = std::make_unique<SimpleSerial>("/dev/ttyUSB0", 115200);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    servo_platform::SpDriver sp_driver("/dev/ttyUSB0");
+    sp_driver.createMessage(90, 90);
+    std::string message = sp_driver.getMessage();
+    EXPECT_EQ(message, "a090090");
 
-    // Write to roll 90 and pitch 90
-    serial_port->writeString("a090090");
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Read response
-    std::string result = serial_port->readUntil('e');
-
-    // Get roll angle from response
-    unsigned first = result.find("r");
-    unsigned last = result.find("p");
-    int roll = std::stoi(result.substr(first+1, last-first-1));
-    // Get pitch
-    first = result.find("p");
-    last = result.find("t");
-    int pitch = std::stoi(result.substr(first+1, last-first-1));
-
-    // Check if roll and pitch are equal or close to 90
-    EXPECT_NEAR(roll, 90, 2);
-    EXPECT_NEAR(pitch, 90, 2);
+    message.clear();
+    sp_driver.createMessage(179, 002);
+    message = sp_driver.getMessage();
+    EXPECT_EQ(message, "a179002");
 }
 
-TEST(testSimpleSerial, testWriteAndReceiveStreaming)
+TEST(testSpDriver, testProcessResponse)
 {
-    // Initialize serial port
-    std::unique_ptr<SimpleSerial> serial_port = std::make_unique<SimpleSerial>("/dev/ttyUSB0", 115200);
+    servo_platform::SpDriver sp_driver("/dev/ttyUSB0");
+    std::string message = "r090p090t000e";
+    servo_platform::SpDataStruct sp_data_struct;
+    sp_driver.processResponse(message, sp_data_struct);
+    EXPECT_EQ(sp_data_struct.state.roll, 90);
+    EXPECT_EQ(sp_data_struct.state.pitch, 90);
+    EXPECT_EQ(sp_data_struct.time_com, 0);
 
-    // Write to roll 90 and pitch 90
-    serial_port->writeString("a090090");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    // Get response
-    std::string result = serial_port->readUntil('e');
-    // Get roll angle from response
-    unsigned first = result.find("r");
-    unsigned last = result.find("p");
-    int roll = std::stoi(result.substr(first+1, last-first-1));
-    // Get pitch
-    first = result.find("p");
-    last = result.find("t");
-    int pitch = std::stoi(result.substr(first+1, last-first-1));
+    message = "r005p150t010e";
+    sp_data_struct;
+    sp_driver.processResponse(message, sp_data_struct);
+    EXPECT_EQ(sp_data_struct.state.roll, 5);
+    EXPECT_EQ(sp_data_struct.state.pitch, 150);
+    EXPECT_EQ(sp_data_struct.time_com, 10);
+}
 
-    EXPECT_NEAR(roll, 90, 25);
-    EXPECT_NEAR(pitch, 90, 25);
+TEST(testSpDriver, testCommunication)
+{
+
+    servo_platform::SpDriver sp_driver("/dev/ttyUSB0");
+    sp_driver.init();
+    servo_platform::SpDataStruct sp_data_struct;
 
     // Perform the test for 5 seconds
     auto start = std::chrono::system_clock::now();
@@ -66,34 +52,10 @@ TEST(testSimpleSerial, testWriteAndReceiveStreaming)
         int roll_set_point = 90 + 30 * sin(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
         int pitch_set_point = 90 + 30 * cos(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
 
-        // Convert this angle to a string of size 3 and fill with 0s in the left
-        std::string roll_set_point_str = std::to_string((int)roll_set_point);
-        std::string pitch_set_point_str = std::to_string((int)pitch_set_point);
-        roll_set_point_str = std::string(3 - roll_set_point_str.length(), '0') + roll_set_point_str;
-        pitch_set_point_str = std::string(3 - pitch_set_point_str.length(), '0') + pitch_set_point_str;
-        roll_set_point_str = roll_set_point_str + pitch_set_point_str;
+        sp_driver.step(roll_set_point, pitch_set_point, sp_data_struct);
 
-        // Add an a at the beginning
-        roll_set_point_str = "a" + roll_set_point_str;
-
-        // Send a string to the serial port
-        serial_port->writeString(roll_set_point_str);
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-
-        // Read from the serial port until a newline character is found
-        std::string result = serial_port->readUntil('e');
-
-        // Get roll angle from response
-        unsigned first = result.find("r");
-        unsigned last = result.find("p");
-        int roll = std::stoi(result.substr(first+1, last-first-1));
-        // Get pitch
-        first = result.find("p");
-        last = result.find("t");
-        int pitch = std::stoi(result.substr(first+1, last-first-1));
-
-        EXPECT_NEAR(roll, roll_set_point, 1);
-        EXPECT_NEAR(pitch, pitch_set_point, 1);
+        EXPECT_NEAR(sp_data_struct.state.roll, roll_set_point, 2);
+        EXPECT_NEAR(sp_data_struct.state.pitch, pitch_set_point, 2);
     }
 }
 

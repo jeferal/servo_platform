@@ -121,10 +121,14 @@ add_library(simple_serial
   src/simple_serial/simple_serial.cpp
 )
 
+add_library(sp_driver
+  src/sp_driver.cpp
+)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(simple_serial ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(sp_driver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -193,10 +197,10 @@ add_library(simple_serial
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(test_sp_driver test/test_sp_driver.cpp)
+catkin_add_gtest(test_sp_driver test/test_simple_serial.cpp test/test_sp_driver.cpp)
 
 if(TARGET test_sp_driver)
-  target_link_libraries(test_sp_driver simple_serial)
+  target_link_libraries(test_sp_driver sp_driver simple_serial)
 endif()
 
 ## Add folders to be run by python nosetests
