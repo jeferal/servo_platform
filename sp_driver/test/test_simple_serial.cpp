@@ -17,7 +17,6 @@ TEST(testSimpleSerial, testWriteAndReceive)
 
     // Write to roll 90 and pitch 90
     serial_port->writeString("a090090");
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // Read response
     std::string result = serial_port->readUntil('e');
@@ -78,7 +77,6 @@ TEST(testSimpleSerial, testWriteAndReceiveStreaming)
 
         // Send a string to the serial port
         serial_port->writeString(roll_set_point_str);
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
         // Read from the serial port until a newline character is found
         std::string result = serial_port->readUntil('e');

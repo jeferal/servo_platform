@@ -10,7 +10,7 @@ SimpleSerial::SimpleSerial(const char* port_name, unsigned int baud_rate)
     std::cout << "Opening serial port " << port_name << " at " << baud_rate << " baud" << std::endl;
 
     // Open the serial port
-    _fd = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
+    _fd = open(port_name, O_RDWR | O_NOCTTY);
     std::cout << "fd: " << _fd << std::endl;
 
     if (_fd == -1)
@@ -46,8 +46,10 @@ auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
     serialConfig.c_iflag &= ~(IXOFF | IXANY);
 
     // set vtime, vmin, baud rate...
+    serialConfig.c_lflag &= ~ICANON; /* Set non-canonical mode */
+    serialConfig.c_cc[VTIME] = 1; /* Set timeout of 10.0 seconds */
+
     serialConfig.c_cc[VMIN] = 0;  // you likely don't want to change this
-    serialConfig.c_cc[VTIME] = 0; // or this
 
     cfsetispeed(&serialConfig, B115200);
     cfsetospeed(&serialConfig, B115200);
@@ -77,6 +79,12 @@ auto SimpleSerial::readUntil(char character) -> std::string
     }
     while (buffer[0] != character && n > 0);
 
-    std::cout << "result: " << result << std::endl;
+    std::cout << "result: " << result << " and n: " << n << std::endl;
+
+    if (n < 0)
+    {
+        throw std::runtime_error("No response from serial port");
+    }
+
     return result;
 }

@@ -2,10 +2,9 @@
 
 using namespace servo_platform;
 
-SpRosDriver::SpRosDriver(const char* port_name, ros::NodeHandle& nh, unsigned int ms_sleep) :
+SpRosDriver::SpRosDriver(const char* port_name, ros::NodeHandle& nh) :
 _nh(nh),
 SpDriver(port_name),
-_ms_sleep(ms_sleep)
 {
     _current_roll.store(90);
     _current_pitch.store(90);
@@ -45,7 +44,7 @@ void SpRosDriver::run()
         // Read roll and pitch
         int roll = _current_roll;
         int pitch = _current_pitch;
-        step(roll, pitch, _state, _ms_sleep);
+        step(roll, pitch, _state);
 
         // Publish state
         sp_ros_driver::SpState sp_state_msg;
