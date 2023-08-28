@@ -26,6 +26,12 @@ SimpleSerial::SimpleSerial(const char* port_name, unsigned int baud_rate)
     std::cout << "Opened serial port " << port_name << " at " << baud_rate << " baud" << std::endl;
 }
 
+SimpleSerial::~SimpleSerial()
+{
+    // Close the serial port
+    close(_fd);
+}
+
 auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
 {
     // Get current serial port settings
@@ -37,10 +43,21 @@ auto SimpleSerial::configurePort(unsigned int baud_rate) -> int
     cfsetispeed(&serialConfig, baud_rate);
     cfsetospeed(&serialConfig, baud_rate);
 
-    serialConfig.c_cflag &= ~PARENB;    // set no parity, stop bits, data bits
-	serialConfig.c_cflag &= ~CSTOPB;
-	serialConfig.c_cflag &= ~CSIZE;
-	serialConfig.c_cflag |= CS8;
+    serialConfig.c_cflag &= ~CRTSCTS;    
+    serialConfig.c_cflag |= (CLOCAL | CREAD);                   
+    serialConfig.c_iflag |= (IGNPAR | IGNCR);                  
+    serialConfig.c_iflag &= ~(IXON | IXOFF | IXANY);          
+    serialConfig.c_oflag &= ~OPOST;
+
+    serialConfig.c_cflag &= ~CSIZE;            
+    serialConfig.c_cflag |= CS8;              
+    serialConfig.c_cflag &= ~PARENB;         
+    serialConfig.c_iflag &= ~INPCK;         
+    serialConfig.c_iflag &= ~(ICRNL|IGNCR);
+    serialConfig.c_cflag &= ~CSTOPB;      
+    serialConfig.c_iflag |= INPCK;       
+    serialConfig.c_cc[VTIME] = 0.001;  //  1s=10   0.1s=1 *
+    serialConfig.c_cc[VMIN] = 0;
 
     // Apply the new settings
     tcsetattr(_fd, TCSANOW, &serialConfig);

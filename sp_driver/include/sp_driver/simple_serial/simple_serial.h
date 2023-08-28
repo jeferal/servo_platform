@@ -15,6 +15,9 @@ public:
     // Constructor
     SimpleSerial(const char* port_name, unsigned int baud_rate);
 
+    // Destructor
+    ~SimpleSerial();
+
     /// @brief 
     /// @param message 
     /// @return 
