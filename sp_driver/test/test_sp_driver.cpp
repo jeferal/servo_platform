@@ -63,21 +63,21 @@ TEST(testSimpleSerial, testWriteAndReceiveStreaming)
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() < 5000) // 5 seconds
     {
         // Create sinusoidal signal from 70 to 110 degrees with a period of 5 seconds
-        double angle_1 = 90 + 20 * sin(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
-        double angle_2 = 90 + 20 * cos(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
+        int roll_set_point = 90 + 30 * sin(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
+        int pitch_set_point = 90 + 30 * cos(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() / 2000.0 * 2 * M_PI);
 
         // Convert this angle to a string of size 3 and fill with 0s in the left
-        std::string angle_string_1 = std::to_string((int)angle_1);
-        std::string angle_string_2 = std::to_string((int)angle_2);
-        angle_string_1 = std::string(3 - angle_string_1.length(), '0') + angle_string_1;
-        angle_string_2 = std::string(3 - angle_string_2.length(), '0') + angle_string_2;
-        angle_string_1 = angle_string_1 + angle_string_2;
+        std::string roll_set_point_str = std::to_string((int)roll_set_point);
+        std::string pitch_set_point_str = std::to_string((int)pitch_set_point);
+        roll_set_point_str = std::string(3 - roll_set_point_str.length(), '0') + roll_set_point_str;
+        pitch_set_point_str = std::string(3 - pitch_set_point_str.length(), '0') + pitch_set_point_str;
+        roll_set_point_str = roll_set_point_str + pitch_set_point_str;
 
         // Add an a at the beginning
-        angle_string_1 = "a" + angle_string_1;
+        roll_set_point_str = "a" + roll_set_point_str;
 
         // Send a string to the serial port
-        serial_port->writeString(angle_string_1);
+        serial_port->writeString(roll_set_point_str);
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
         // Read from the serial port until a newline character is found
@@ -92,8 +92,8 @@ TEST(testSimpleSerial, testWriteAndReceiveStreaming)
         last = result.find("t");
         int pitch = std::stoi(result.substr(first+1, last-first-1));
 
-        EXPECT_NEAR(roll, 90, 25);
-        EXPECT_NEAR(pitch, 90, 25);
+        EXPECT_NEAR(roll, roll_set_point, 1);
+        EXPECT_NEAR(pitch, pitch_set_point, 1);
     }
 }
 
