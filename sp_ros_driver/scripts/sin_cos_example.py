@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import math
-from time import sleep
 
 import rospy
 from sp_ros_driver.msg import SpCommand
