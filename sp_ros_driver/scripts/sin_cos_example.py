@@ -32,3 +32,6 @@ if __name__ == "__main__":
         print(f"Publishing roll: {msg.roll}, pitch: {msg.pitch}")
         # Publish message
         publisher.publish(msg)
+
+        # Sleep
+        rospy.sleep(0.02)
