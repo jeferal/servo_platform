@@ -25,15 +25,33 @@ bool SpBallControl::init()
     ROS_INFO_STREAM("Start pitch: " << start_pitch_);
 
     // Subscribe to the ball position topic
-    ball_position_sub_ = nh_.subscribe("/sp_ball_position", 1, &SpBallControl::ballPositionCallback, this);
+    ball_position_sub_ = nh_.subscribe("/ball_tracker/position", 1, &SpBallControl::ballPositionCallback, this);
 
     // Publish the servo platform command
     sp_command_pub_ = nh_.advertise<sp_ros_driver::SpCommand>("/sp_ros_driver_node/sp_command", 1);
 
-    set_point_x = 300;
-    set_point_y = 250;
+    nh_.getParam("/sp_ros_driver_node/set_point_x", set_point_x);
+    nh_.getParam("/sp_ros_driver_node/set_point_y", set_point_y);
+
+    // dynamic reconfigure
+    dynamic_reconfigure_server_.reset(new dynamic_reconfigure::Server<sp_control::SpBallControlConfig>());
+    // TODO: Use lambas instead of boost::bind
+    function_cb_ = boost::bind(&SpBallControl::dynamicReconfigureCallback, this, _1, _2);
+    dynamic_reconfigure_server_->setCallback(function_cb_);
 
     return true;
+}
+
+void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& config, uint32_t level)
+{
+    // Update the parameters
+    // TODO: Make thread safe
+    kp_ = config.kp;
+    kd_ = config.kd;
+    ki_ = config.ki;
+
+    set_point_x = config.set_point_x;
+    set_point_y = config.set_point_y;
 }
 
 void SpBallControl::ballPositionCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)
@@ -70,11 +88,11 @@ void SpBallControl::ballPositionCallback(const sp_ros_driver::SpCommand::ConstPt
     saturate_(pitch_action, 60, 130);
 
     sp_ros_driver::SpCommand sp_command;
-    sp_command.pitch = roll_action;
-    sp_command.roll = pitch_action;
+    sp_command.pitch = pitch_action;
+    sp_command.roll = roll_action;
 
     // Print roll and pitch
-    ROS_INFO("Roll: %f, Pitch: %f", sp_command.roll, sp_command.pitch);
+    ROS_INFO_STREAM("Roll " << sp_command.roll << "Pitch: " << sp_command.pitch);
 
     sp_command_pub_.publish(sp_command);
 }

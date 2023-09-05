@@ -78,6 +78,14 @@ class BallTracker:
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
             cv2.rectangle(cv_image, p1, p2, (255, 0, 0), 2, 1)
+
+            # Publish the position of the ball
+            position_msg = SpCommand()
+            position_msg.roll = int(bbox[0] + bbox[2] / 2)
+            position_msg.pitch = int(bbox[1] + bbox[3] / 2)
+
+            self._position_pub.publish(position_msg)
+
         else:
             # Tracking failure
             cv2.putText(cv_image,
@@ -104,6 +112,11 @@ class BallTracker:
     
     def initialize_tracker(self, image: np.ndarray):
         self.create_tracker(self._tracking_algorithm)
+
+        # Draw a point in the image given x and y
+        x = 700
+        y = 380
+        cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
 
         # Ask the user to create a bounding box
         bbox = cv2.selectROI("Initialization window", image, fromCenter=False, showCrosshair=True)

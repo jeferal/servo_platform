@@ -1,7 +1,4 @@
 <launch>
     <node name="sp_ball_control_node" pkg="sp_control" type="sp_ball_control_node" output="screen">
-        <param name="kp" type="double" value="0.5"/>
-        <param name="ki" type="double" value="0.0"/>
-        <param name="kd" type="double" value="0.1"/>
     </node>
 </launch>

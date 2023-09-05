@@ -12,6 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
   sp_ros_driver
   std_msgs
   sp_ros_driver
+  dynamic_reconfigure
+)
+
+generate_dynamic_reconfigure_options(
+  config/SpBallControl.cfg
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,10 +109,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES sp_control
-#  CATKIN_DEPENDS roscpp sp_ros_driver std_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES sp_control
+  CATKIN_DEPENDS
+    roscpp
+    sp_ros_driver
+    std_msgs
+    dynamic_reconfigure
 )
 
 ###########

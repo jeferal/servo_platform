@@ -1,6 +1,12 @@
+// Include boost scoped_ptr
+#include <boost/scoped_ptr.hpp>
+
 #include <ros/ros.h>
 
+#include <dynamic_reconfigure/server.h>
+
 #include <sp_ros_driver/SpCommand.h>
+#include <sp_control/SpBallControlConfig.h>
 
 
 namespace sp_control
@@ -22,6 +28,9 @@ namespace sp_control
 
             /// @brief 
             void run();
+
+            // dynamic reconfigure callback
+            void dynamicReconfigureCallback(sp_control::SpBallControlConfig& config, uint32_t level);
 
         private:
 
@@ -51,6 +60,11 @@ namespace sp_control
             // Current roll and pitch
             double start_roll_;
             double start_pitch_;
+
+            // dynamic reconfigure
+            boost::scoped_ptr<dynamic_reconfigure::Server<sp_control::SpBallControlConfig>>
+                dynamic_reconfigure_server_;
+            dynamic_reconfigure::Server<sp_control::SpBallControlConfig>::CallbackType function_cb_;
     };
 
 }   // namespace sp_control
