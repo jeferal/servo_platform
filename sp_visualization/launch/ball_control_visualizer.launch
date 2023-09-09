@@ -1,0 +1,9 @@
+<launch>
+
+    <node name="sp_ball_control_image_visualizer" pkg="sp_visualization" type="sp_ball_control_image_visualizer" output="screen">
+        <remap from="/sp_ball_control_image_visualizer/image_in" to="/camera/color/image_raw"/>
+        <remap from="/sp_ball_control_image_visualizer/ball_detection" to="/sp_ball_tracking/output/position"/>
+        <remap from="/sp_ball_control_image_visualizer/set_point" to="/sp_ball_control_node/set_point"/>
+    </node>
+
+</launch>

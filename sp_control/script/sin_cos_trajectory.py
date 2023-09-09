@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # Create publisher
     publisher = rospy.Publisher("/sp_ball_control_node/set_point", SpCommand, queue_size=10)
 
-    period_time = 5.0
+    period_time = 10.0
     while not rospy.is_shutdown():
         # Generate sinusoidal trajectory 5 sec period, offset 90 deg, amplitude 90 + 30 deg
         x_value = 640 + 150 * math.sin(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
@@ -29,4 +29,4 @@ if __name__ == "__main__":
         publisher.publish(msg)
 
         # Sleep
-        rospy.sleep(0.03333333333333333)
+        rospy.sleep(0.033)

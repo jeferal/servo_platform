@@ -47,10 +47,29 @@ bool SpBallControl::init()
     return true;
 }
 
+void SpBallControl::resetState()
+{
+    error_x_ = 0;
+    error_y_ = 0;
+    error_sum_x_ = 0;
+    error_sum_y_ = 0;
+}
+
+void SpBallControl::getState(std::vector<double>& state)
+{
+    state.clear();
+    state.emplace_back(error_x_);
+    state.emplace_back(error_y_);
+    state.emplace_back(error_sum_x_);
+    state.emplace_back(error_sum_y_);
+}
+
 void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& config, uint32_t level)
 {
+    // Protect the parameters with a scoped mutex
+    std::lock_guard<std::mutex> guard(configuration_mutex_);
+
     // Update the parameters
-    // TODO: Make thread safe
     kp_x_ = config.kp_x;
     kd_x_ = config.kd_x;
     ki_x_ = config.ki_x;
@@ -65,6 +84,9 @@ void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& 
 
 void SpBallControl::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)
 {
+    // Protect the set points with a scoped mutex
+    std::lock_guard<std::mutex> guard(configuration_mutex_);
+
     set_point_x_ = msg->set_point_roll;
     set_point_y_ = msg->set_point_pitch;
 }
@@ -91,37 +113,49 @@ void SpBallControl::update_error_(const double &error_x, const double &error_y)
     error_y_ = error_y;
 }
 
-void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::ConstPtr& msg)
+void SpBallControl::step(const double& actual_x, const double& actual_y,
+                         double& action_roll, double& action_pitch)
 {
-    ROS_INFO_THROTTLE(5, "Ball position callback");
-
-    // Calculate the error
     double error_x, error_y;
-    calculate_error_(msg->position_x, msg->position_y, error_x, error_y);
+    calculate_error_(actual_x, actual_y, error_x, error_y);
 
     // Compute the PID for X
     double p_x = kp_x_ * error_x;
     double i_x = ki_x_ * error_sum_x_;
-    ROS_INFO_STREAM("Derivative action error_x: " << error_x << " error_x_: " << error_x_ << " and kd_x_: " << kd_x_);
-    double d_x = kd_x_ * (error_x - error_x_);    // TODO: Add deviding by time
-    
+    double d_x = kd_x_ * (error_x - error_x_);
+
     // Compute the PID for Y
     double p_y = kp_y_ * error_y;
     double i_y = ki_y_ * error_sum_y_;
     double d_y = kd_y_ * (error_y - error_y_);
 
-    double roll_action = p_x + i_x + d_x + start_roll_;
-    double pitch_action = p_y + i_y + d_y + start_pitch_;
+    action_roll = p_x + i_x + d_x + start_roll_;
+    action_pitch = p_y + i_y + d_y + start_pitch_;
 
     // Saturate roll and pitch
-    saturate_(roll_action, 60, 130);
-    saturate_(pitch_action, 60, 130);
+    saturate_(action_roll, 60, 130);
+    saturate_(action_pitch, 60, 130);
 
+    // Update internal state
     update_error_(error_x, error_y);
+}
+
+void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::ConstPtr& msg)
+{
+    // Protect reading from parameters and set points with a scoped mutex
+    std::lock_guard<std::mutex> guard(configuration_mutex_);
+
+    // Stepq
+    double action_roll, action_pitch;
+    step(msg->position_x, msg->position_y, action_roll, action_pitch);
 
     sp_ros_driver::SpCommand sp_command;
-    sp_command.set_point_pitch = roll_action;
-    sp_command.set_point_roll = pitch_action;
+    // TODO: Fix convention in the driver
+    sp_command.set_point_pitch = action_roll;
+    sp_command.set_point_roll = action_pitch;
+
+    // Add the time stamp
+    sp_command.header.stamp = ros::Time::now();
 
     sp_command_pub_.publish(sp_command);
 }

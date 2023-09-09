@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(sp_control)
+project(sp_visualization)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -10,16 +10,12 @@ project(sp_control)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   sp_ros_driver
-  std_msgs
-  dynamic_reconfigure
-)
-
-generate_dynamic_reconfigure_options(
-  config/SpBallControl.cfg
+  cv_bridge
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV 4 REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -75,7 +71,7 @@ generate_dynamic_reconfigure_options(
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ################################################
@@ -109,12 +105,12 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES sp_control
+  LIBRARIES sp_visualization
   CATKIN_DEPENDS
     roscpp
     sp_ros_driver
-    std_msgs
-    dynamic_reconfigure
+    cv_bridge
+    image_transport
 )
 
 ###########
@@ -126,11 +122,12 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/sp_control.cpp
+#   src/${PROJECT_NAME}/sp_visualization.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -141,7 +138,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(sp_ball_control_node src/sp_ball_control_node.cpp)
+add_executable(sp_ball_control_image_visualizer src/sp_ball_control_img_visualizer.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -151,11 +148,12 @@ add_executable(sp_ball_control_node src/sp_ball_control_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(sp_ball_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(sp_ball_control_image_visualizer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(sp_ball_control_node
+target_link_libraries(sp_ball_control_image_visualizer
   ${catkin_LIBRARIES}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 #############
@@ -205,7 +203,7 @@ target_link_libraries(sp_ball_control_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_sp_control.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_sp_visualization.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -1,5 +1,5 @@
-// Include boost scoped_ptr
-#include <boost/scoped_ptr.hpp>
+#include <memory>
+#include <mutex>
 
 #include <ros/ros.h>
 
@@ -14,7 +14,6 @@ namespace sp_control
 {
     class SpBallControl
     {
-
         public:
 
             /// @brief 
@@ -36,6 +35,20 @@ namespace sp_control
 
             // dynamic reconfigure callback
             void dynamicReconfigureCallback(sp_control::SpBallControlConfig& config, uint32_t level);
+
+            void resetState();
+
+            void getState(std::vector<double>& state);
+
+            /// @brief 
+            /// @param actual_x
+            /// @param actual_y 
+            /// @param error_x
+            /// @param error_y 
+            /// @param action_roll 
+            /// @param action_pitch 
+            void step(const double& actual_x, const double& actual_y,
+                      double& action_roll, double& action_pitch);
 
         private:
 
@@ -79,9 +92,11 @@ namespace sp_control
             double start_pitch_;
 
             // dynamic reconfigure
-            boost::scoped_ptr<dynamic_reconfigure::Server<sp_control::SpBallControlConfig>>
+            std::unique_ptr<dynamic_reconfigure::Server<sp_control::SpBallControlConfig>>
                 dynamic_reconfigure_server_;
             dynamic_reconfigure::Server<sp_control::SpBallControlConfig>::CallbackType function_cb_;
+
+            std::mutex configuration_mutex_;
     };
 
 }   // namespace sp_control

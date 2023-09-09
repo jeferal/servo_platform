@@ -5,7 +5,6 @@
     <arg name="start_roll" default="99"/>
     <arg name="start_pitch" default="89"/>
 
-    <!-- Data collector-->
     <node name="sp_ros_driver_node" pkg="sp_ros_driver" type="sp_ros_driver_node" output="screen">
         <param name="port_name" type="string" value="$(arg port_name)"/>
         <param name="start_roll" type="int" value="$(arg start_roll)"/>
