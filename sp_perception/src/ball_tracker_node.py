@@ -23,7 +23,7 @@ import rospy
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from sp_ros_driver.msg import SpCommand
+from sp_perception.msg import SpTrackingOutput
 
 class BallTracker:
 
@@ -31,13 +31,13 @@ class BallTracker:
 
         # Create a subscriber to get the image
         self.bridge = CvBridge()
-        self._image_sub = rospy.Subscriber("/camera/color/image_raw", Image, self.image_callback)
+        self._image_sub = rospy.Subscriber("input/image_raw", Image, self.image_callback)
 
         # Create a publisher to publish the image with the bounding box
-        self._image_pub = rospy.Publisher("/ball_tracker/image_raw", Image, queue_size=10)
+        self._image_pub = rospy.Publisher("~output/image_raw", Image, queue_size=10)
 
         # Create a publisher to publish the position of the ball
-        self._position_pub = rospy.Publisher("/ball_tracker/position", SpCommand, queue_size=10)
+        self._position_pub = rospy.Publisher("~output/position", SpTrackingOutput, queue_size=10)
 
         # Flag to indicate if the tracking algorithm is initialized
         self._initialized = False
@@ -80,11 +80,14 @@ class BallTracker:
             cv2.rectangle(cv_image, p1, p2, (255, 0, 0), 2, 1)
 
             # Publish the position of the ball
-            position_msg = SpCommand()
-            position_msg.roll = int(bbox[0] + bbox[2] / 2)
-            position_msg.pitch = int(bbox[1] + bbox[3] / 2)
+            output_msg = SpTrackingOutput()
+            output_msg.position_x = int(bbox[0] + bbox[2] / 2)
+            output_msg.position_y = int(bbox[1] + bbox[3] / 2)
 
-            self._position_pub.publish(position_msg)
+            # Update the time stamp
+            output_msg.header.stamp = rospy.Time.now()
+
+            self._position_pub.publish(output_msg)
 
         else:
             # Tracking failure
@@ -114,8 +117,8 @@ class BallTracker:
         self.create_tracker(self._tracking_algorithm)
 
         # Draw a point in the image given x and y
-        x = 700
-        y = 380
+        x = 640
+        y = 360
         cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
 
         # Ask the user to create a bounding box

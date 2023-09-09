@@ -43,8 +43,8 @@ void SpBallDetector::imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
         // TODO change for a point message
         sp_ros_driver::SpCommand sp_command_msg;
-        sp_command_msg.roll = ball_position.x;
-        sp_command_msg.pitch = ball_position.y;
+        sp_command_msg.set_point_roll = ball_position.x;
+        sp_command_msg.set_point_pitch = ball_position.y;
 
         // Publish the position of the ball
         sp_command_pub_.publish(sp_command_msg);

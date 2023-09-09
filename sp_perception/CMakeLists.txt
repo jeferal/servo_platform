@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sp_ros_driver
+  message_generation
+  message_runtime
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,11 +52,10 @@ find_package(OpenCV 4 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  SpTrackingOutput.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -71,10 +72,10 @@ find_package(OpenCV 4 REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -106,9 +107,15 @@ find_package(OpenCV 4 REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-   INCLUDE_DIRS include
-   LIBRARIES sp_perception
-   CATKIN_DEPENDS roscpp std_msgs sensor_msgs cv_bridge image_transport sp_ros_driver
+  INCLUDE_DIRS include
+  LIBRARIES sp_perception
+  CATKIN_DEPENDS
+    roscpp
+    std_msgs
+    sensor_msgs
+    cv_bridge
+    image_transport
+    sp_ros_driver
 )
 
 ###########

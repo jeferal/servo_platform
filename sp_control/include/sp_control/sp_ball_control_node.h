@@ -6,6 +6,7 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <sp_ros_driver/SpCommand.h>
+#include <sp_perception/SpTrackingOutput.h>
 #include <sp_control/SpBallControlConfig.h>
 
 
@@ -24,7 +25,7 @@ namespace sp_control
 
             /// @brief 
             /// @param msg 
-            void ballPositionCallback(const sp_ros_driver::SpCommand::ConstPtr& msg);
+            void ballPositionCallback(const sp_perception::SpTrackingOutput::ConstPtr& msg);
 
             /// @brief 
             void run();
@@ -36,6 +37,13 @@ namespace sp_control
 
             void saturate_(double& value, double min, double max);
 
+            /// @brief 
+            /// @param actual_x 
+            /// @param actual_y 
+            /// @param error_x 
+            /// @param error_y 
+            void calculate_error_(const double &actual_x, const double &actual_y, double& error_x, double& error_y);
+
             ros::NodeHandle nh_;
 
             // Subscriber for the ball position
@@ -45,9 +53,9 @@ namespace sp_control
             ros::Publisher sp_command_pub_;
 
             // PID parameters
-            double kp_;
-            double ki_;
-            double kd_;
+            double kp_x_, kp_y_;
+            double ki_x_, ki_y_;
+            double kd_x_, kd_y_;
 
             // Internal variables of PID
             double error_x_, error_y_;

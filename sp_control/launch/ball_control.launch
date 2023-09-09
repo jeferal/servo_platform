@@ -1,4 +1,6 @@
 <launch>
     <node name="sp_ball_control_node" pkg="sp_control" type="sp_ball_control_node" output="screen">
+        <remap from="/sp_ball_control_node/state_feedback" to="/sp_ball_tracking/output/position"/>
+        <remap from="/sp_ball_control_node/control_action" to="/sp_ros_driver_node/command"/>
     </node>
 </launch>

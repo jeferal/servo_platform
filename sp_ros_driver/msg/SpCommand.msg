@@ -1,2 +1,4 @@
-int32 roll
-int32 pitch
+Header header
+
+int32 set_point_roll
+int32 set_point_pitch
