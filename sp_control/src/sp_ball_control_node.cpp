@@ -7,7 +7,7 @@ SpBallControl::SpBallControl(ros::NodeHandle& nh) :
 nh_(nh),
 error_x_(0), error_y_(0),
 error_sum_x_(0), error_sum_y_(0),
-set_point_x(0), set_point_y(0)
+set_point_x_(640), set_point_y_(360)
 {
 }
 
@@ -25,17 +25,18 @@ bool SpBallControl::init()
 
     nh_.getParam("/sp_ros_driver_node/start_roll", start_pitch_);
     nh_.getParam("/sp_ros_driver_node/start_pitch", start_roll_);
+
     ROS_INFO_STREAM("Start roll: " << start_roll_);
     ROS_INFO_STREAM("Start pitch: " << start_pitch_);
 
     // Subscribe to the ball position topic
     ball_position_sub_ = nh_.subscribe("state_feedback", 1, &SpBallControl::ballPositionCallback, this);
 
+    // Subscribe to set point
+    set_point_sub_ = nh_.subscribe("set_point", 1, &SpBallControl::setPointCallback, this);
+
     // Publish the servo platform command
     sp_command_pub_ = nh_.advertise<sp_ros_driver::SpCommand>("control_action", 1);
-
-    nh_.getParam("/sp_ros_driver_node/set_point_x", set_point_x);
-    nh_.getParam("/sp_ros_driver_node/set_point_y", set_point_y);
 
     // dynamic reconfigure
     dynamic_reconfigure_server_.reset(new dynamic_reconfigure::Server<sp_control::SpBallControlConfig>());
@@ -58,15 +59,24 @@ void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& 
     kd_y_ = config.kd_y;
     ki_y_ = config.ki_y;
 
-    set_point_x = config.set_point_x;
-    set_point_y = config.set_point_y;
+    set_point_x_ = config.set_point_x;
+    set_point_y_ = config.set_point_y;
+}
+
+void SpBallControl::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)
+{
+    set_point_x_ = msg->set_point_roll;
+    set_point_y_ = msg->set_point_pitch;
 }
 
 void SpBallControl::calculate_error_(const double &actual_x, const double &actual_y, double& error_x, double& error_y)
 {
-    error_x = - (set_point_x - actual_x);
-    error_y = (set_point_y - actual_y);
+    error_x = - (set_point_x_ - actual_x);
+    error_y = (set_point_y_ - actual_y);
+}
 
+void SpBallControl::update_error_(const double &error_x, const double &error_y)
+{
     // Update the error sum x
     error_sum_x_ += error_x;
     // Saturate error sum
@@ -92,8 +102,9 @@ void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::
     // Compute the PID for X
     double p_x = kp_x_ * error_x;
     double i_x = ki_x_ * error_sum_x_;
+    ROS_INFO_STREAM("Derivative action error_x: " << error_x << " error_x_: " << error_x_ << " and kd_x_: " << kd_x_);
     double d_x = kd_x_ * (error_x - error_x_);    // TODO: Add deviding by time
-
+    
     // Compute the PID for Y
     double p_y = kp_y_ * error_y;
     double i_y = ki_y_ * error_sum_y_;
@@ -105,6 +116,8 @@ void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::
     // Saturate roll and pitch
     saturate_(roll_action, 60, 130);
     saturate_(pitch_action, 60, 130);
+
+    update_error_(error_x, error_y);
 
     sp_ros_driver::SpCommand sp_command;
     sp_command.set_point_pitch = roll_action;

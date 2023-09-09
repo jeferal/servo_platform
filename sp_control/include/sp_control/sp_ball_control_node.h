@@ -28,6 +28,10 @@ namespace sp_control
             void ballPositionCallback(const sp_perception::SpTrackingOutput::ConstPtr& msg);
 
             /// @brief 
+            /// @param msg 
+            void setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg);
+
+            /// @brief 
             void run();
 
             // dynamic reconfigure callback
@@ -36,6 +40,8 @@ namespace sp_control
         private:
 
             void saturate_(double& value, double min, double max);
+
+            void update_error_(const double &error_x, const double &error_y);
 
             /// @brief 
             /// @param actual_x 
@@ -52,6 +58,9 @@ namespace sp_control
             // Publisher for the servo platform command
             ros::Publisher sp_command_pub_;
 
+            // Subscriber for the set point
+            ros::Subscriber set_point_sub_;
+
             // PID parameters
             double kp_x_, kp_y_;
             double ki_x_, ki_y_;
@@ -62,8 +71,8 @@ namespace sp_control
             double error_sum_x_, error_sum_y_;
 
             // Current set point
-            double set_point_x;
-            double set_point_y;
+            double set_point_x_;
+            double set_point_y_;
 
             // Current roll and pitch
             double start_roll_;
