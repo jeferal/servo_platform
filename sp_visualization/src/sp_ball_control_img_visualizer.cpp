@@ -54,10 +54,11 @@ void SpBallControlImgVisualizer::imageCallback(const sensor_msgs::ImageConstPtr&
         points_vector_.erase(points_vector_.begin());
     }
 
-    // Draw the ball position
+    // Draw the ball position and the bounding box
     if (ball_x_ != -1 && ball_y_ != -1)
     {
         cv::circle(cv_ptr->image, cv::Point(ball_x_, ball_y_), 5, CV_RGB(0,255,0), 2);
+        cv::rectangle(cv_ptr->image, cv::Point(bounding_box_[0], bounding_box_[1]), cv::Point(bounding_box_[0] + bounding_box_[2], bounding_box_[1] + bounding_box_[3]), CV_RGB(0,255,0), 2);
     }
 
     // Publish the image
@@ -69,6 +70,12 @@ void SpBallControlImgVisualizer::ballDetectionCallback(const sp_perception::SpTr
     // Update ball position
     ball_x_ = msg->position_x;
     ball_y_ = msg->position_y;
+
+    // Update the bouding box
+    for (int i = 0; i < 4; i++)
+    {
+        bounding_box_[i] = msg->bounding_box[i];
+    }
 }
 
 void SpBallControlImgVisualizer::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)

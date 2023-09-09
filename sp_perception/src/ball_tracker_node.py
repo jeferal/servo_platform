@@ -83,6 +83,10 @@ class BallTracker:
             output_msg = SpTrackingOutput()
             output_msg.position_x = int(bbox[0] + bbox[2] / 2)
             output_msg.position_y = int(bbox[1] + bbox[3] / 2)
+            output_msg.bounding_box[0] = int(bbox[0])
+            output_msg.bounding_box[1] = int(bbox[1])
+            output_msg.bounding_box[2] = int(bbox[2])
+            output_msg.bounding_box[3] = int(bbox[3])
 
             # Update the time stamp
             output_msg.header.stamp = rospy.Time.now()

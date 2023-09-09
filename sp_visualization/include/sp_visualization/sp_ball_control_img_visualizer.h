@@ -1,3 +1,5 @@
+#include <array>
+
 #include <ros/ros.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -54,6 +56,9 @@ namespace sp_visualization
             // Ball position
             int ball_x_;
             int ball_y_;
+
+            // Bounding box
+            std::array<int, 4> bounding_box_ = {-1, -1, -1, -1};
 
             // Set point
             int set_point_x_;
