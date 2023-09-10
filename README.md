@@ -41,9 +41,11 @@ tracking algorithm. The controller computes the control action and sends it to t
 captured from a Realsense located on the top of the platform.
 
 Response against disturbances:
+
 ![Disturbances](docs/disturbances.gif)
 
 Sinusoidal trajectory:
+
 ![Ball trajectory](docs/trajectory_ball_control.gif)
 
 ## Next steps
@@ -58,6 +60,7 @@ long term.
 * Fill in doxygen documentation.
 * Refactor the PID controller code. Create a PID controller class and the SpBallController will use this class
 through composition (one instance for x and another for y).
+* Upload the videos to youtube to avoid large files in the repository.
 * Fine tune the parameters. The current response has oscilations and big position error. This could be solved by
 a better tuning, improving the mechanical clearance or linearizing the system.
 * Create launch file to start the controller easily.
