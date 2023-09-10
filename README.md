@@ -44,7 +44,7 @@ Response against disturbances:
 ![Disturbances](docs/disturbances.gif)
 
 Sinusoidal trajectory:
-![Ball trajectory](docs/trajectory_ball_control.gif.gif)
+![Ball trajectory](docs/trajectory_ball_control.gif)
 
 ## Next steps
 This project has just started and there are many things to do. First of all, the purpose of this project is to have
