@@ -8,16 +8,15 @@ accomplish tasks such as controlling the position of a ball on the platform.
 
 ![Servo Platform](docs/servo_platform.jpg)
 
-* The parallel platform:
+* The `parallel platform`:
 It contains 2 high performance Servos and a resistive screen.
-
-* Microcontroller NodeMcu ESP8266: The microcontroller is used to command the servos through PWM signals.
+* `Microcontroller NodeMcu ESP8266`: The microcontroller is used to command the servos through PWM signals.
 The device also reads the current position of the servos and sends the information to the host.
 The communication between the host and the microcontroller is done through a serial port every 20ms.
+The microcontroller has been programmed with `PlatformIO` and using the `Arduino` framework.
 The microcontroller and the servos are powered by a 5V power supply.
-
-* The host: The host is a computer running Ubuntu 20.04 with docker.
-* Realsense D415 Camera: The camera is used to detect the position of a ball on the plaform.
+* The `host`: The host is a computer running Ubuntu 20.04 with docker.
+* `Realsense D415` Camera: The camera is used to detect the position of a ball on the plaform.
 It provides a depth image and a color image.
 ![Realsense](docs/realsense.jpg)
 
@@ -40,7 +39,12 @@ Its parameters have been exposed through the `dynamic_reconfigure` package so th
 The controller uses the position of the ball on the platform as a feedback. This position is the output of the
 tracking algorithm. The controller computes the control action and sends it to the ROS driver node. The image is
 captured from a Realsense located on the top of the platform.
+
+Response against disturbances:
 ![Disturbances](docs/disturbances.gif)
+
+Sinusoidal trajectory:
+![Ball trajectory](docs/trajectory_ball_control.gif.gif)
 
 ## Next steps
 This project has just started and there are many things to do. First of all, the purpose of this project is to have
@@ -69,3 +73,4 @@ reduce them.
 * Implement a simulation of the ball control task so that Agents can learn.
 * Train a RL algorithm to control the ball position and transfer it to the real platform. Perhaps it could use
 Imitation learning from the current PID controller to learn faster.
+* Use a microcontroller that can run RTOS.
