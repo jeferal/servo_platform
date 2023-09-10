@@ -37,9 +37,7 @@ bool SpBallControl::init()
     sp_command_pub_ = nh_.advertise<sp_ros_driver::SpCommand>("control_action", 1);
 
     // Publisher PID x state
-    pid_x_state_pub_ = nh_.advertise<sp_control::BallControlPid>("x/pid_state", 1);
-    // Publisher PID y state
-    pid_y_state_pub_ = nh_.advertise<sp_control::BallControlPid>("y/pid_state", 1);
+    pid_state_pub_ = nh_.advertise<sp_control::BallControlPid>("pid_state", 1);
 
     // dynamic reconfigure
     dynamic_reconfigure_server_.reset(new dynamic_reconfigure::Server<sp_control::SpBallControlConfig>());
@@ -176,46 +174,44 @@ void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::
     sp_command.header.stamp = ros::Time::now();
 
     // Create the PID state message for X
-    sp_control::BallControlPid pid_x_state_msg;
-    pid_x_state_msg.set_point = set_point_x_;
-    pid_x_state_msg.process_value = msg->position_x;
-    pid_x_state_msg.pid_state.error = pid_x_state_.error;
-    pid_x_state_msg.pid_state.error_dot = pid_x_state_.error_dot;
-    pid_x_state_msg.pid_state.p_error = pid_x_state_.error;
-    pid_x_state_msg.pid_state.i_error = pid_x_state_.error_sum;
-    pid_x_state_msg.pid_state.d_error = pid_x_state_.error_dot;
-    pid_x_state_msg.pid_state.p_term = pid_x_state_.action_p;
-    pid_x_state_msg.pid_state.i_term = pid_x_state_.action_i;
-    pid_x_state_msg.pid_state.d_term = pid_x_state_.action_d;
-    pid_x_state_msg.pid_state.i_max = 100;
-    pid_x_state_msg.pid_state.i_min = -100;
-    pid_x_state_msg.pid_state.output = pid_x_state_.action;
+    sp_control::BallControlPid pid_state_msg;
+    pid_state_msg.set_point_x = set_point_x_;
+    pid_state_msg.process_value_x = msg->position_x;
+    pid_state_msg.pid_state_x.error = pid_x_state_.error;
+    pid_state_msg.pid_state_x.error_dot = pid_x_state_.error_dot;
+    pid_state_msg.pid_state_x.p_error = pid_x_state_.error;
+    pid_state_msg.pid_state_x.i_error = pid_x_state_.error_sum;
+    pid_state_msg.pid_state_x.d_error = pid_x_state_.error_dot;
+    pid_state_msg.pid_state_x.p_term = pid_x_state_.action_p;
+    pid_state_msg.pid_state_x.i_term = pid_x_state_.action_i;
+    pid_state_msg.pid_state_x.d_term = pid_x_state_.action_d;
+    pid_state_msg.pid_state_x.i_max = 100;
+    pid_state_msg.pid_state_x.i_min = -100;
+    pid_state_msg.pid_state_x.output = pid_x_state_.action;
 
     // Create the PID state message for Y
-    sp_control::BallControlPid pid_y_state_msg;
-    pid_y_state_msg.set_point = set_point_y_;
-    pid_y_state_msg.process_value = msg->position_y;
-    pid_y_state_msg.pid_state.error = pid_y_state_.error;
-    pid_y_state_msg.pid_state.error_dot = pid_y_state_.error_dot;
-    pid_y_state_msg.pid_state.p_error = pid_y_state_.error;
-    pid_y_state_msg.pid_state.i_error = pid_y_state_.error_sum;
-    pid_y_state_msg.pid_state.d_error = pid_y_state_.error_dot;
-    pid_y_state_msg.pid_state.p_term = pid_y_state_.action_p;
-    pid_y_state_msg.pid_state.i_term = pid_y_state_.action_i;
-    pid_y_state_msg.pid_state.d_term = pid_y_state_.action_d;
-    pid_y_state_msg.pid_state.i_max = 100;
-    pid_y_state_msg.pid_state.i_min = -100;
-    pid_y_state_msg.pid_state.output = pid_y_state_.action;
+    pid_state_msg.set_point_y = set_point_y_;
+    pid_state_msg.process_value_y = msg->position_y;
+    pid_state_msg.pid_state_y.error = pid_y_state_.error;
+    pid_state_msg.pid_state_y.error_dot = pid_y_state_.error_dot;
+    pid_state_msg.pid_state_y.p_error = pid_y_state_.error;
+    pid_state_msg.pid_state_y.i_error = pid_y_state_.error_sum;
+    pid_state_msg.pid_state_y.d_error = pid_y_state_.error_dot;
+    pid_state_msg.pid_state_y.p_term = pid_y_state_.action_p;
+    pid_state_msg.pid_state_y.i_term = pid_y_state_.action_i;
+    pid_state_msg.pid_state_y.d_term = pid_y_state_.action_d;
+    pid_state_msg.pid_state_y.i_max = 100;
+    pid_state_msg.pid_state_y.i_min = -100;
+    pid_state_msg.pid_state_y.output = pid_y_state_.action;
 
     // Update time stamps
     sp_command.header.stamp = ros::Time::now();
-    pid_x_state_msg.pid_state.header.stamp = ros::Time::now();
-    pid_y_state_msg.pid_state.header.stamp = ros::Time::now();
+    pid_state_msg.pid_state_x.header.stamp = ros::Time::now();
+    pid_state_msg.pid_state_y.header.stamp = ros::Time::now();
 
     // Publish
     sp_command_pub_.publish(sp_command);
-    pid_x_state_pub_.publish(pid_x_state_msg);
-    pid_y_state_pub_.publish(pid_y_state_msg);
+    pid_state_pub_.publish(pid_state_msg);
 }
 
 void SpBallControl::saturate_(double& value, double min, double max)

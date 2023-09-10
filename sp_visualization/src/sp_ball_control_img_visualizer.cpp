@@ -49,7 +49,7 @@ void SpBallControlImgVisualizer::imageCallback(const sensor_msgs::ImageConstPtr&
     }
 
     // Remove an element from the vector if the size is bigger than N
-    if (points_vector_.size() > 100)
+    if (points_vector_.size() > 10)
     {
         points_vector_.erase(points_vector_.begin());
     }
@@ -78,15 +78,27 @@ void SpBallControlImgVisualizer::ballDetectionCallback(const sp_perception::SpTr
     }
 }
 
-void SpBallControlImgVisualizer::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)
+void SpBallControlImgVisualizer::setPointCallback(const sp_control::BallControlPid::ConstPtr& msg)
 {
-    // Create message
-    sp_ros_driver::SpCommand set_point_msg(*msg);
+    static int counter = 0;
 
     // TODO: Create a temporal throttle to avoid printing too many points
+    if (counter == 10)
+    {
+        // Create message
+        sp_ros_driver::SpCommand set_point_msg;
+        set_point_msg.set_point_roll = msg->set_point_x;
+        set_point_msg.set_point_pitch = msg->set_point_y;
 
-    // Add message to the queue
-    points_vector_.emplace_back(set_point_msg);
+        // Add message to the queue
+        points_vector_.emplace_back(set_point_msg);
+
+        counter = 0;
+        return;
+    }
+
+    counter++;
+    return;
 }
 
 void SpBallControlImgVisualizer::run()

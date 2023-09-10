@@ -95,10 +95,8 @@ namespace sp_control
             // Publisher for the servo platform command
             ros::Publisher sp_command_pub_;
 
-            // Publisher of PID x state
-            ros::Publisher pid_x_state_pub_;
-            // Publisher of PID y state
-            ros::Publisher pid_y_state_pub_;
+            // Publisher of Pid state
+            ros::Publisher pid_state_pub_;
 
             // Subscriber for the set point
             ros::Subscriber set_point_sub_;

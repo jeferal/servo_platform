@@ -11,6 +11,7 @@
 
 #include <sp_ros_driver/SpCommand.h>
 #include <sp_perception/SpTrackingOutput.h>
+#include <sp_control/BallControlPid.h>
 
 
 namespace sp_visualization
@@ -37,7 +38,7 @@ namespace sp_visualization
 
             /// @brief 
             /// @param msg 
-            void setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg);
+            void setPointCallback(const sp_control::BallControlPid::ConstPtr& msg);
 
             void run();
 
