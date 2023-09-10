@@ -9,12 +9,36 @@
 #include <sp_perception/SpTrackingOutput.h>
 #include <sp_control/SpBallControlConfig.h>
 
+#include <sp_control/BallControlPid.h>
 
 namespace sp_control
 {
     class SpBallControl
     {
         public:
+
+            // Structure for PID config
+            struct PIDConfig
+            {
+                double kp = 0;
+                double ki = 0;
+                double kd = 0;
+            };
+
+            // Structure for PID state
+            struct PIDState
+            {
+                // Errors
+                double error = 0;
+                double error_prev = 0;
+                double error_dot = 0;
+                double error_sum = 0;
+                // Actions
+                double action_p = 0;
+                double action_i = 0;
+                double action_d = 0;
+                double action = 0;
+            };
 
             /// @brief 
             /// @param nh 
@@ -54,14 +78,14 @@ namespace sp_control
 
             void saturate_(double& value, double min, double max);
 
-            void update_error_(const double &error_x, const double &error_y);
+            void update_error_();
 
             /// @brief 
             /// @param actual_x 
             /// @param actual_y 
             /// @param error_x 
             /// @param error_y 
-            void calculate_error_(const double &actual_x, const double &actual_y, double& error_x, double& error_y);
+            void calculate_error_(const double &actual_x, const double &actual_y);
 
             ros::NodeHandle nh_;
 
@@ -71,17 +95,19 @@ namespace sp_control
             // Publisher for the servo platform command
             ros::Publisher sp_command_pub_;
 
+            // Publisher of PID x state
+            ros::Publisher pid_x_state_pub_;
+            // Publisher of PID y state
+            ros::Publisher pid_y_state_pub_;
+
             // Subscriber for the set point
             ros::Subscriber set_point_sub_;
 
             // PID parameters
-            double kp_x_, kp_y_;
-            double ki_x_, ki_y_;
-            double kd_x_, kd_y_;
-
+            PIDConfig pid_x_config_, pid_y_config_;
+            
             // Internal variables of PID
-            double error_x_, error_y_;
-            double error_sum_x_, error_sum_y_;
+            PIDState pid_x_state_, pid_y_state_;
 
             // Current set point
             double set_point_x_;

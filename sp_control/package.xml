@@ -59,6 +59,9 @@
   <exec_depend>sp_ros_driver</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <depend>dynamic_reconfigure</depend>
+  <depend>control_msgs</depend>
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

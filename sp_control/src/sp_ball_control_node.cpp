@@ -5,8 +5,6 @@ using namespace sp_control;
 
 SpBallControl::SpBallControl(ros::NodeHandle& nh) :
 nh_(nh),
-error_x_(0), error_y_(0),
-error_sum_x_(0), error_sum_y_(0),
 set_point_x_(640), set_point_y_(360)
 {
 }
@@ -16,12 +14,12 @@ bool SpBallControl::init()
     ROS_INFO("Getting parameters from the parameter server");
 
     // Get the PID parameters from the parameter server
-    nh_.param("kp_x", kp_x_, 0.0);
-    nh_.param("ki_x", ki_x_, 0.0);
-    nh_.param("kd_x", kd_x_, 0.0);
-    nh_.param("kp_y", kp_y_, 0.0);
-    nh_.param("ki_y", ki_y_, 0.0);
-    nh_.param("kd_y", kd_y_, 0.0);
+    nh_.param("kp_x", pid_x_config_.kp, 0.0);
+    nh_.param("ki_x", pid_x_config_.ki, 0.0);
+    nh_.param("kd_x", pid_x_config_.kd, 0.0);
+    nh_.param("kp_y", pid_y_config_.kp, 0.0);
+    nh_.param("ki_y", pid_y_config_.ki, 0.0);
+    nh_.param("kd_y", pid_y_config_.kd, 0.0);
 
     nh_.getParam("/sp_ros_driver_node/start_roll", start_pitch_);
     nh_.getParam("/sp_ros_driver_node/start_pitch", start_roll_);
@@ -38,6 +36,11 @@ bool SpBallControl::init()
     // Publish the servo platform command
     sp_command_pub_ = nh_.advertise<sp_ros_driver::SpCommand>("control_action", 1);
 
+    // Publisher PID x state
+    pid_x_state_pub_ = nh_.advertise<sp_control::BallControlPid>("x/pid_state", 1);
+    // Publisher PID y state
+    pid_y_state_pub_ = nh_.advertise<sp_control::BallControlPid>("y/pid_state", 1);
+
     // dynamic reconfigure
     dynamic_reconfigure_server_.reset(new dynamic_reconfigure::Server<sp_control::SpBallControlConfig>());
     // TODO: Use lambas instead of boost::bind
@@ -49,19 +52,29 @@ bool SpBallControl::init()
 
 void SpBallControl::resetState()
 {
-    error_x_ = 0;
-    error_y_ = 0;
-    error_sum_x_ = 0;
-    error_sum_y_ = 0;
+    pid_x_state_.error = 0;
+    pid_x_state_.error_prev = 0;
+    pid_x_state_.error_dot = 0;
+    pid_x_state_.error_sum = 0;
+
+    pid_y_state_.error = 0;
+    pid_y_state_.error_prev = 0;
+    pid_y_state_.error_dot = 0;
+    pid_y_state_.error_sum = 0;
 }
 
 void SpBallControl::getState(std::vector<double>& state)
 {
     state.clear();
-    state.emplace_back(error_x_);
-    state.emplace_back(error_y_);
-    state.emplace_back(error_sum_x_);
-    state.emplace_back(error_sum_y_);
+    state.emplace_back(pid_x_state_.error);
+    state.emplace_back(pid_x_state_.error_prev);
+    state.emplace_back(pid_x_state_.error_dot);
+    state.emplace_back(pid_x_state_.error_sum);
+
+    state.emplace_back(pid_y_state_.error);
+    state.emplace_back(pid_y_state_.error_prev);
+    state.emplace_back(pid_y_state_.error_dot);
+    state.emplace_back(pid_y_state_.error_sum);
 }
 
 void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& config, uint32_t level)
@@ -70,13 +83,13 @@ void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& 
     std::lock_guard<std::mutex> guard(configuration_mutex_);
 
     // Update the parameters
-    kp_x_ = config.kp_x;
-    kd_x_ = config.kd_x;
-    ki_x_ = config.ki_x;
+    pid_x_config_.kp = config.kp_x;
+    pid_x_config_.ki = config.ki_x;
+    pid_x_config_.kd = config.kd_x;
 
-    kp_y_ = config.kp_y;
-    kd_y_ = config.kd_y;
-    ki_y_ = config.ki_y;
+    pid_y_config_.kp = config.kp_y;
+    pid_y_config_.ki = config.ki_y;
+    pid_y_config_.kd = config.kd_y;
 
     set_point_x_ = config.set_point_x;
     set_point_y_ = config.set_point_y;
@@ -91,53 +104,58 @@ void SpBallControl::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& m
     set_point_y_ = msg->set_point_pitch;
 }
 
-void SpBallControl::calculate_error_(const double &actual_x, const double &actual_y, double& error_x, double& error_y)
+void SpBallControl::calculate_error_(const double &actual_x, const double &actual_y)
 {
-    error_x = - (set_point_x_ - actual_x);
-    error_y = (set_point_y_ - actual_y);
+    pid_x_state_.error = - (set_point_x_ - actual_x);
+    pid_y_state_.error = (set_point_y_ - actual_y);
+
+    pid_x_state_.error_sum += pid_x_state_.error;
+    pid_y_state_.error_sum += pid_y_state_.error;
+
+    // Saturate error sum
+    saturate_(pid_x_state_.error_sum, -100, 100);
+    saturate_(pid_y_state_.error_sum, -100, 100);
+
+    pid_x_state_.error_dot = pid_x_state_.error - pid_x_state_.error_prev;
+    pid_y_state_.error_dot = pid_y_state_.error - pid_y_state_.error_prev;
 }
 
-void SpBallControl::update_error_(const double &error_x, const double &error_y)
+void SpBallControl::update_error_()
 {
-    // Update the error sum x
-    error_sum_x_ += error_x;
-    // Saturate error sum
-    saturate_(error_sum_x_, -100, 100);
     // Update the internal error x
-    error_x_ = error_x;
+    pid_x_state_.error_prev = pid_x_state_.error;
 
-    // Update the error sum y
-    error_sum_y_ += error_y;
-    saturate_(error_sum_y_, -100, 100);
     // Update the internal error y
-    error_y_ = error_y;
+    pid_y_state_.error_prev = pid_y_state_.error;
 }
 
 void SpBallControl::step(const double& actual_x, const double& actual_y,
                          double& action_roll, double& action_pitch)
 {
-    double error_x, error_y;
-    calculate_error_(actual_x, actual_y, error_x, error_y);
+    calculate_error_(actual_x, actual_y);
 
     // Compute the PID for X
-    double p_x = kp_x_ * error_x;
-    double i_x = ki_x_ * error_sum_x_;
-    double d_x = kd_x_ * (error_x - error_x_);
+    pid_x_state_.action_p = pid_x_config_.kp * pid_x_state_.error;
+    pid_x_state_.action_i = pid_x_config_.ki * pid_x_state_.error_sum;
+    pid_x_state_.action_d = pid_x_config_.kd * pid_x_state_.error_dot;
 
     // Compute the PID for Y
-    double p_y = kp_y_ * error_y;
-    double i_y = ki_y_ * error_sum_y_;
-    double d_y = kd_y_ * (error_y - error_y_);
+    pid_y_state_.action_p = pid_y_config_.kp * pid_y_state_.error;
+    pid_y_state_.action_i = pid_y_config_.ki * pid_y_state_.error_sum;
+    pid_y_state_.action_d = pid_y_config_.kd * pid_y_state_.error_dot;
 
-    action_roll = p_x + i_x + d_x + start_roll_;
-    action_pitch = p_y + i_y + d_y + start_pitch_;
+    pid_x_state_.action = pid_x_state_.action_p + pid_x_state_.action_i + pid_x_state_.action_d + start_roll_;
+    pid_y_state_.action = pid_y_state_.action_p + pid_y_state_.action_i + pid_y_state_.action_d + start_pitch_;
+
+    action_roll = pid_x_state_.action;
+    action_pitch = pid_y_state_.action;
 
     // Saturate roll and pitch
-    saturate_(action_roll, 60, 130);
-    saturate_(action_pitch, 60, 130);
+    saturate_(pid_x_state_.action, 60, 130);
+    saturate_(pid_y_state_.action, 60, 130);
 
     // Update internal state
-    update_error_(error_x, error_y);
+    update_error_();
 }
 
 void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::ConstPtr& msg)
@@ -145,7 +163,7 @@ void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::
     // Protect reading from parameters and set points with a scoped mutex
     std::lock_guard<std::mutex> guard(configuration_mutex_);
 
-    // Stepq
+    // Step
     double action_roll, action_pitch;
     step(msg->position_x, msg->position_y, action_roll, action_pitch);
 
@@ -157,7 +175,47 @@ void SpBallControl::ballPositionCallback(const sp_perception::SpTrackingOutput::
     // Add the time stamp
     sp_command.header.stamp = ros::Time::now();
 
+    // Create the PID state message for X
+    sp_control::BallControlPid pid_x_state_msg;
+    pid_x_state_msg.set_point = set_point_x_;
+    pid_x_state_msg.process_value = msg->position_x;
+    pid_x_state_msg.pid_state.error = pid_x_state_.error;
+    pid_x_state_msg.pid_state.error_dot = pid_x_state_.error_dot;
+    pid_x_state_msg.pid_state.p_error = pid_x_state_.error;
+    pid_x_state_msg.pid_state.i_error = pid_x_state_.error_sum;
+    pid_x_state_msg.pid_state.d_error = pid_x_state_.error_dot;
+    pid_x_state_msg.pid_state.p_term = pid_x_state_.action_p;
+    pid_x_state_msg.pid_state.i_term = pid_x_state_.action_i;
+    pid_x_state_msg.pid_state.d_term = pid_x_state_.action_d;
+    pid_x_state_msg.pid_state.i_max = 100;
+    pid_x_state_msg.pid_state.i_min = -100;
+    pid_x_state_msg.pid_state.output = pid_x_state_.action;
+
+    // Create the PID state message for Y
+    sp_control::BallControlPid pid_y_state_msg;
+    pid_y_state_msg.set_point = set_point_y_;
+    pid_y_state_msg.process_value = msg->position_y;
+    pid_y_state_msg.pid_state.error = pid_y_state_.error;
+    pid_y_state_msg.pid_state.error_dot = pid_y_state_.error_dot;
+    pid_y_state_msg.pid_state.p_error = pid_y_state_.error;
+    pid_y_state_msg.pid_state.i_error = pid_y_state_.error_sum;
+    pid_y_state_msg.pid_state.d_error = pid_y_state_.error_dot;
+    pid_y_state_msg.pid_state.p_term = pid_y_state_.action_p;
+    pid_y_state_msg.pid_state.i_term = pid_y_state_.action_i;
+    pid_y_state_msg.pid_state.d_term = pid_y_state_.action_d;
+    pid_y_state_msg.pid_state.i_max = 100;
+    pid_y_state_msg.pid_state.i_min = -100;
+    pid_y_state_msg.pid_state.output = pid_y_state_.action;
+
+    // Update time stamps
+    sp_command.header.stamp = ros::Time::now();
+    pid_x_state_msg.pid_state.header.stamp = ros::Time::now();
+    pid_y_state_msg.pid_state.header.stamp = ros::Time::now();
+
+    // Publish
     sp_command_pub_.publish(sp_command);
+    pid_x_state_pub_.publish(pid_x_state_msg);
+    pid_y_state_pub_.publish(pid_y_state_msg);
 }
 
 void SpBallControl::saturate_(double& value, double min, double max)

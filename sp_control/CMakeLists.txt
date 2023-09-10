@@ -11,7 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sp_ros_driver
   std_msgs
+  control_msgs
   dynamic_reconfigure
+  message_generation
+  message_runtime
 )
 
 generate_dynamic_reconfigure_options(
@@ -52,11 +55,10 @@ generate_dynamic_reconfigure_options(
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  BallControlPid.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -73,10 +75,11 @@ generate_dynamic_reconfigure_options(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  control_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -115,6 +118,9 @@ catkin_package(
     sp_ros_driver
     std_msgs
     dynamic_reconfigure
+    control_msgs
+    message_generation
+    message_runtime
 )
 
 ###########
