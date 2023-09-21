@@ -45,7 +45,7 @@ Response against disturbances:
 ![Disturbances](docs/disturbances.gif)
 
 ### Control diagram
-![Servo Platform](docs/servo_control_control_diagram.jpg)
+![Servo Platform](docs/servo_control_control_diagram.png)
 
 ## Next steps
 This project has just started and there are many things to do. First of all, the purpose of this project is to have
