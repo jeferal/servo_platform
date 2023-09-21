@@ -44,9 +44,8 @@ Response against disturbances:
 
 ![Disturbances](docs/disturbances.gif)
 
-Sinusoidal trajectory:
-
-![Ball trajectory](docs/trajectory_ball_control.gif)
+### Control diagram
+![Servo Platform](docs/servo_control_control_diagram.jpg)
 
 ## Next steps
 This project has just started and there are many things to do. First of all, the purpose of this project is to have
