@@ -25,9 +25,54 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from sp_perception.msg import SpTrackingOutput
 
+class DaSiamRPN:
+    def __init__(self, kernel_cls1_path, kernel_r1_path, model_path, backend_id=0, target_id=0):
+        self._model_path = model_path
+        self._kernel_cls1_path = kernel_cls1_path
+        self._kernel_r1_path = kernel_r1_path
+        self._backend_id = backend_id
+        self._target_id = target_id
+
+        self._param = cv2.TrackerDaSiamRPN_Params()
+        self._param.model = self._model_path
+        self._param.kernel_cls1 = self._kernel_cls1_path
+        self._param.kernel_r1 = self._kernel_r1_path
+        self._param.backend = self._backend_id
+        self._param.target = self._target_id
+        self._model = cv2.TrackerDaSiamRPN.create(self._param)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    def setBackendAndTarget(self, backendId, targetId):
+        self._backend_id = backendId
+        self._target_id = targetId
+
+        self._param = cv2.TrackerDaSiamRPN_Params()
+        self._param.model = self._model_path
+        self._param.kernel_cls1 = self._kernel_cls1_path
+        self._param.kernel_r1 = self._kernel_r1_path
+        self._param.backend = self._backend_id
+        self._param.target = self._target_id
+        self._model = cv2.TrackerDaSiamRPN.create(self._param)
+
+    def init(self, image, roi):
+        self._model.init(image, roi)
+
+    def update(self, image):
+        return self._model.update(image)
+
+    def infer(self, image):
+        isLocated, bbox = self._model.update(image)
+        score = self._model.getTrackingScore()
+        return isLocated, bbox, score
+
 class BallTracker:
 
     def __init__(self) -> None:
+        
+        rospy.loginfo(f"Opencv version: {cv2.__version__}")
 
         # Create a subscriber to get the image
         self.bridge = CvBridge()
@@ -44,7 +89,7 @@ class BallTracker:
         self._in_progress = False
 
         # Get the parameter that indicates the tracking algorithm
-        self._tracking_algorithm = rospy.get_param("~tracking_algorithm", "CSRT")
+        self._tracking_algorithm = rospy.get_param("~tracking_algorithm", "DASIAMRPN")
 
         # Create the tracker
         self._tracker = None
@@ -142,6 +187,7 @@ class BallTracker:
         self._in_progress = False
     
     def create_tracker(self, tracking_algorithm: str):
+        rospy.loginfo(f"Creating tracker of type {tracking_algorithm}")
         if tracking_algorithm == 'BOOSTING':
             self._tracker = cv2.TrackerBoosting_create()
         elif tracking_algorithm == 'MIL':
@@ -156,6 +202,13 @@ class BallTracker:
             self._tracker = cv2.TrackerCSRT_create()
         elif tracking_algorithm == 'MOSSE':
             self._tracker = cv2.TrackerMOSSE_create()
+        elif tracking_algorithm == 'DASIAMRPN':
+            self._tracker = DaSiamRPN(
+                kernel_cls1_path="/opt/opencv_zoo/models/object_tracking_dasiamrpn/object_tracking_dasiamrpn_kernel_cls1_2021nov.onnx",
+                kernel_r1_path="/opt/opencv_zoo/models/object_tracking_dasiamrpn/object_tracking_dasiamrpn_kernel_r1_2021nov.onnx",
+                model_path="/opt/opencv_zoo/models/object_tracking_dasiamrpn/object_tracking_dasiamrpn_model_2021nov.onnx",
+                backend_id=cv2.dnn.DNN_BACKEND_CUDA,
+                target_id=cv2.dnn.DNN_TARGET_CUDA)
         else:
             raise ValueError(f"Unknown tracking algorithm {tracking_algorithm}")
 

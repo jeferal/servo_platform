@@ -19,7 +19,7 @@ def main():
     # Create publisher
     publisher = rospy.Publisher("/sp_ball_control_node/set_point", SpCommand, queue_size=10)
 
-    step_time = 5.0
+    step_time = 3.0
     sings = [(1,1), (1,-1), (-1,-1), (-1,1)]
 
     while not rospy.is_shutdown():

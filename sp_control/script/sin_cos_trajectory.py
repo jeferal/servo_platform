@@ -16,8 +16,8 @@ if __name__ == "__main__":
     period_time = 10.0
     while not rospy.is_shutdown():
         # Generate sinusoidal trajectory 5 sec period, offset 90 deg, amplitude 90 + 30 deg
-        x_value = 640 + 150 * math.sin(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
-        y_value = 380 + 150 * math.cos(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
+        x_value = 640 + 220 * math.sin(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
+        y_value = 380 + 180 * math.cos(2 * math.pi * rospy.get_time() / period_time + math.pi / 2)
 
         # Create message
         msg = SpCommand()
