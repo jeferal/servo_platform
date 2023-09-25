@@ -13,50 +13,22 @@ import time
 import math
 
 
-H = 720
-W = 1280
+H = 480
+W = 640
 
-class MSDModel:
-    def __init__(self, mass, spring, dumpness, first_position=0, first_velocity=0, first_acceleration=0, min_position=0, max_position=1):
-        self.mass = mass
-        self.spring = spring
-        self.dumpness = dumpness
-        self.position = first_position
-        self.velocity = first_velocity
-        self.acceleration = first_acceleration
+class EMAFilter:
+    def __init__(self, alpha, first_position=0.0):
+        self.alpha = alpha
+        self.filtered_value = first_position
 
-        self._min_position = min_position
-        self._max_position = max_position
-
-    def update(self, reference) -> None:
-        accel_value = (self.spring * (reference - self.position) +
-                             self.dumpness * self.velocity) / self.mass
-        vel_value = self.velocity + self.acceleration
-        pos_value = self.position + self.velocity
-
-        self.position = self._saturate(pos_value, self._min_position, self._max_position)
-        self.velocity = self._saturate(vel_value, -10, 10)
-        self.acceleration = self._saturate(accel_value, -10, 10)
-    
-        self.velocity += self.acceleration
-        self.position += self.velocity
-    
-    def _saturate(self, value, min_value, max_value) -> float:
-        if value < min_value:
-            return min_value
-        elif value > max_value:
-            return max_value
+    def update(self, new_value):
+        if self.filtered_value is None:
+            self.filtered_value = new_value
         else:
-            return value
+            self.filtered_value = self.alpha * new_value + (1 - self.alpha) * self.filtered_value
 
-    def get_position(self) -> float:
-        return self.position
-    
-    def get_velocity(self) -> float:
-        return self.velocity
-    
-    def get_acceleration(self) -> float:
-        return self.acceleration
+    def get_position(self):
+        return self.filtered_value
 
 
 def main():
@@ -72,17 +44,17 @@ def main():
     mpDraw = mp.solutions.drawing_utils
 
     # Create the MSD model
-    mass_x = 0.0
-    spring_x = 1.0
-    dumpness_x = 5.0
+    kp_x = 10.0
+    ki_x = 1.0
+    kd_x = 5.0
     first_position_x = W / 2
-    msd_x = MSDModel(mass_x, spring_x, dumpness_x, first_position_x, min_position=0, max_position=W)
+    msd_x = EMAFilter(0.05, first_position_x)
 
-    mass_y = 0.0
-    spring_y = 1.0
-    dumpness_y = 5.0
+    kp_y = 10.0
+    ki_y = 1.0
+    kd_y = 5.0
     first_position_y = H / 2
-    msd_y = MSDModel(mass_y, spring_y, dumpness_y, first_position_y, min_position=0, max_position=H)
+    msd_y = EMAFilter(0.05, first_position_y)
 
     ref_position_x = first_position_x
     ref_position_y = first_position_y
@@ -105,6 +77,7 @@ def main():
             for handLms in results.multi_hand_landmarks: # working with each hand
                 for id, lm in enumerate(handLms.landmark):
                     h, w, c = image.shape
+                    print(image.shape)
                     cx, cy = int(lm.x * w), int(lm.y * h)
 
                 mpDraw.draw_landmarks(image, handLms, mpHands.HAND_CONNECTIONS)
