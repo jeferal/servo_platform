@@ -1,80 +1,167 @@
 #!/usr/bin/env python3
 
 """
-    This script will be used to send commands to the ball position controller through a mediapipe model.
-    The script will read the position of the first finger tip and this position will be the goal to the ball position controller
-    as long as the position of the ff tip remains within the frame and within the playable area.
+    This will get the hand landmarks and will use them to control the position
+    of a circle on the screen. The circle will move following a reference point
+    through a 2 order differential equation (mass, spring dumpness).
+    The reference point will be the center of a pinch grasp between the thumb
+    and the index finger.
 """
 
 import cv2
 import mediapipe as mp
 import numpy as np
+import time
+import math
 
 import rospy
 
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
 from sp_ros_driver.msg import SpCommand
 
-# Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands()
+from utils.filters import EMAFilter
 
-# Create a VideoCapture object to capture webcam feed
+H = 720
+W = 1280
+
+# Create the video capture object
 cap = cv2.VideoCapture(0)
 
-# Init node
-rospy.init_node("mediapipe_command")
+# Create the mediapipe hand object
+mpHands = mp.solutions.hands
+hands = mpHands.Hands()
 
-# Create the publisher
-pub = rospy.Publisher("/sp_ball_control_node/set_point", SpCommand, queue_size=1)
+# Create the mediapipe drawing object
+mpDraw = mp.solutions.drawing_utils
 
-x_set_point = 640
-y_set_point = 380
+# Create the EMA model
+first_position_x = W / 2
+ema_x = EMAFilter(0.15, first_position_x)
 
-while not rospy.is_shutdown():
+first_position_y = H / 2
+ema_y = EMAFilter(0.15, first_position_y)
 
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    # Convert the frame to RGB
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+ref_position_x = first_position_x
+ref_position_y = first_position_y
 
-    # Detect hand landmarks
-    results = hands.process(frame_rgb)
+# Create publisher
+sp_command_pub = rospy.Publisher("/sp_ball_control_node/set_point", SpCommand, queue_size=10)
 
+
+def image_callback(msg):
+    global ref_position_x, ref_position_y, sp_command_pub
+
+    # Convert the image to OpenCV
+    cv_image = None
+    try:
+        cv_image = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+    except CvBridgeError as exception:
+        rospy.logerr(exception)
+
+    # Get the image from the camera
+    success, image = cap.read()
+
+    # Convert the image to RGB
+    imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Process the image with mediapipe
+    results = hands.process(imageRGB)
+
+    print(results)
+
+    is_tracking = False
+
+    # Check if a hand is detected
     if results.multi_hand_landmarks:
+        for handLms in results.multi_hand_landmarks: # working with each hand
+            for id, lm in enumerate(handLms.landmark):
+                h_c, w_c, c_c = image.shape
+                h_p, w_p, c_p = cv_image.shape
+                cx, cy = int(lm.x * w_p), int(lm.y * h_p)
 
-        # Get the position of the first finger tip in the camera frame
-        landmarks = results.multi_hand_landmarks[0].landmark
-        index_tip = landmarks[8]
-        index_x, index_y = index_tip.x, index_tip.y
-        # Convert to camera coordinates with the shape of the image
-        x_set_point = int(index_x * frame.shape[1])
-        y_set_point = int(index_y * frame.shape[0])
+            mpDraw.draw_landmarks(cv_image, handLms, mpHands.HAND_CONNECTIONS)
 
-        # Draw the landmarks
-        for landmark in landmarks:
-            x = int(landmark.x * frame.shape[1])
-            y = int(landmark.y * frame.shape[0])
-            cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+            # Get the position of the finger tips
+            thumb_tip = handLms.landmark[4]
+            index_finger_tip = handLms.landmark[8]
 
-    # Create the message
-    msg = SpCommand()
-    msg.header.stamp = rospy.Time.now()
-    msg.header.frame_id = "mediapipe_command"
-    msg.set_point_roll = x_set_point
-    msg.set_point_pitch = y_set_point
+            # Get the distance between the finger tips
+            distance_ff_th_tip = math.sqrt(
+                (thumb_tip.x - index_finger_tip.x)**2 + (thumb_tip.y - index_finger_tip.y)**2)
 
-    print(f"Publishing set point: {x_set_point}, {y_set_point}")
+            # Get the position of the EMA
+            position_x = ema_x.get_position()
+            position_y = ema_y.get_position()
 
-    # Publish the message
-    pub.publish(msg)
+            # Get the distance between index tip and EMA
+            distance_index_ema = math.sqrt(
+                (index_finger_tip.x*W - position_x)**2 + (index_finger_tip.y*H - position_y)**2)
 
-    # Display the frame
-    cv2.imshow("Frame", frame)
+            # Get the distance between thumb tip and EMA
+            distance_thumb_ema = math.sqrt(
+                (thumb_tip.x*W - position_x)**2 + (thumb_tip.y*H - position_y)**2)
 
-    if cv2.waitKey(1) & 0xFF == 27:  # Press 'Esc' to exit
-        break
+            if distance_ff_th_tip < 0.1:
+                # Draw a line between the index tip and thumb tip
+                cv2.line(cv_image, (int(thumb_tip.x * W), int(thumb_tip.y * H)),
+                        (int(index_finger_tip.x * W), int(index_finger_tip.y * H)),
+                        (255, 0, 0), 3)
+        
+            # Print the distances
+            if distance_ff_th_tip < 0.1 and distance_index_ema < 100 and distance_thumb_ema < 100:
+                is_tracking = True
+            if distance_ff_th_tip > 0.1:
+                is_tracking = False
 
-cap.release()
-cv2.destroyAllWindows()
+    color = ()
+    if is_tracking:
+        ref_position_x = index_finger_tip.x * W
+        ref_position_y = index_finger_tip.y * H
+        color = (0, 255, 0)
+    else:
+        ref_position_x = first_position_x
+        ref_position_y = first_position_y
+        color = (0, 0, 255)
+
+    ema_x.update(ref_position_x)
+    ema_y.update(ref_position_y)
+
+    # Draw the position of the EMA as a little circle
+    cv2.circle(cv_image, (int(ema_x.get_position()), int(ema_y.get_position())), 10, color, -1)
+
+    # Create Sp command message
+    sp_command = SpCommand()
+    sp_command.header.stamp = rospy.Time.now()
+    sp_command.set_point_roll = int(ema_x.get_position())
+    sp_command.set_point_pitch = int(ema_y.get_position())
+
+    # Publish the command
+    sp_command_pub.publish(sp_command)
+
+    cv2.imshow("Output", cv_image)
+    cv2.waitKey(1)
+
+
+def main():
+    
+    # Create ROS node
+    rospy.init_node("mediapipe_command")
+
+    # Create the subscription to the ball camera
+    platform_image_sub = rospy.Subscriber("/camera/color/image_raw", Image, image_callback)
+
+    is_tracking = False
+
+    rospy.spin()
+
+    # Close the video capture object
+    cap.release()
+
+    # Close all the windows
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()

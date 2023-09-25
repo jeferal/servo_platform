@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
     This will get the hand landmarks and will use them to control the position
     of a circle on the screen. The circle will move following a reference point
@@ -12,29 +14,17 @@ import numpy as np
 import time
 import math
 
-
-H = 480
-W = 640
-
-class EMAFilter:
-    def __init__(self, alpha, first_position=0.0):
-        self.alpha = alpha
-        self.filtered_value = first_position
-
-    def update(self, new_value):
-        if self.filtered_value is None:
-            self.filtered_value = new_value
-        else:
-            self.filtered_value = self.alpha * new_value + (1 - self.alpha) * self.filtered_value
-
-    def get_position(self):
-        return self.filtered_value
+from utils.filters import EMAFilter
 
 
 def main():
-    
+
     # Create the video capture object
     cap = cv2.VideoCapture(0)
+
+    # Get height and width
+    H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
     # Create the mediapipe hand object
     mpHands = mp.solutions.hands
@@ -48,13 +38,13 @@ def main():
     ki_x = 1.0
     kd_x = 5.0
     first_position_x = W / 2
-    msd_x = EMAFilter(0.05, first_position_x)
+    msd_x = EMAFilter(0.15, first_position_x)
 
     kp_y = 10.0
     ki_y = 1.0
     kd_y = 5.0
     first_position_y = H / 2
-    msd_y = EMAFilter(0.05, first_position_y)
+    msd_y = EMAFilter(0.15, first_position_y)
 
     ref_position_x = first_position_x
     ref_position_y = first_position_y
@@ -111,7 +101,7 @@ def main():
                     is_tracking = True
                 if distance_ff_th_tip > 0.1:
                     is_tracking = False     
-   
+
         if is_tracking:
             ref_position_x = index_finger_tip.x * W
             ref_position_y = index_finger_tip.y * H
@@ -119,7 +109,6 @@ def main():
             ref_position_x = first_position_x
             ref_position_y = first_position_y
 
-        print(f"Is tracking: {is_tracking}")
         msd_x.update(ref_position_x)
         msd_y.update(ref_position_y)
         

@@ -88,9 +88,6 @@ void SpBallControl::dynamicReconfigureCallback(sp_control::SpBallControlConfig& 
     pid_y_config_.kp = config.kp_y;
     pid_y_config_.ki = config.ki_y;
     pid_y_config_.kd = config.kd_y;
-
-    set_point_x_ = config.set_point_x;
-    set_point_y_ = config.set_point_y;
 }
 
 void SpBallControl::setPointCallback(const sp_ros_driver::SpCommand::ConstPtr& msg)
